@@ -17,6 +17,7 @@ macOS/Linux:
 ```bash
 export DATABASE_URL='file:./prisma/dev.db'
 export PORT=3000
+export JWT_SECRET="$(node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))")"
 ```
 
 PowerShell:
@@ -24,6 +25,7 @@ PowerShell:
 ```powershell
 $env:DATABASE_URL = 'file:./prisma/dev.db'
 $env:PORT = '3000'
+$env:JWT_SECRET = node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
 Create/update the local database and generate Prisma Client:
@@ -36,6 +38,8 @@ npm run db:seed
 
 The database is stored at `apps/api/prisma/dev.db`; SQLite needs no separate server. Keep secrets and real environment files out of Git.
 
+`JWT_SECRET` is required to start the API. The commands above generate a random secret; keep it in the API terminal's environment. Changing it invalidates previously issued tokens.
+
 The seed creates 50,000 demo orders with 1–5 items each, plus the demo accounts below. Rerunning adds missing records without deleting data or resetting existing orders, passwords, or roles.
 
 | Role  | Email             | Demo password |
@@ -43,7 +47,7 @@ The seed creates 50,000 demo orders with 1–5 items each, plus the demo account
 | ADMIN | admin@example.com | DemoAdmin123! |
 | AGENT | agent@example.com | DemoAgent123! |
 
-These credentials are for local demo use only; the database stores bcrypt hashes. Login is not implemented yet.
+These credentials are for local demo use only; the database stores bcrypt hashes.
 
 Start each app in a separate terminal:
 
@@ -57,14 +61,28 @@ npm run dev:web
 
 API: <http://localhost:3000>. Frontend: <http://localhost:5173> (or the URL Vite prints).
 
+## Login
+
+`POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes. Frontend login is not implemented yet.
+
 ## Tests
 
 ```bash
 npm run db:validate
 npm run test --workspace=api
+npm run test:e2e --workspace=api
 ```
 
-Tests cover the scaffold, database constraints, and a complete seed/rerun against a temporary database. The R2 parallel-request proof is not implemented yet.
+Tests cover the scaffold, database constraints, seed/rerun, login, and JWT rejection cases. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
+
+## Security review (in progress)
+
+- Hardcoded JWT secret: replaced with required environment configuration, with no fallback secret.
+- Decode-only authentication and missing expiry: tokens are signed, expire after one hour, and are verified using HS256. Tokens without expiry are rejected.
+- Query-string tokens and loose header parsing: only a valid Bearer header is accepted.
+- Plaintext password lookup: credentials are checked against bcrypt hashes; incorrect credentials receive a generic error.
+- Unvalidated login input: DTO validation rejects malformed fields, extra properties, and passwords beyond bcrypt's 72-byte limit.
+- Frontend-only admin checks: server-side role authorization is the next step. Client token storage will be documented with frontend login.
 
 ## Indexes
 
@@ -72,6 +90,6 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: authentication, R1/R2, and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
+Development is ongoing: role authorization, frontend login, R1/R2, and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
 
-The security-review findings/fixes, token-storage explanation, and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.
+The remaining security-review fixes, token-storage explanation, and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.

@@ -669,8 +669,6 @@ Each item is one intended micro-commit boundary. Ship security and correctness w
 
 Completed setup is supported by existing files and commits `f72af43`, `21a5588`, `8e19622`, and `5a1afb0`; these checks record scaffold presence, not a fresh validation of those commits.
 
-Known scaffold issue from step 6 verification: full API typechecking reports `TS2307` for the existing `supertest/types` import in `apps/api/test/app.e2e-spec.ts`. The API build, schema-test typecheck, and unit/schema tests pass. Resolve the unrelated import before final submission verification.
-
 1. [x] Initialize repository and npm workspace.
 2. [x] Scaffold React/Vite/TypeScript app.
 3. [x] Scaffold NestJS app.
@@ -679,7 +677,7 @@ Known scaffold issue from step 6 verification: full API typechecking reports `TS
 6. [x] Add database models, constraints, and query indexes; document index purpose and search limitations.
 7. [x] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
 8. [x] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
-9. [ ] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
+9. [x] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
 10. [ ] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
 11. [ ] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
 12. [ ] Implement login and protected frontend routes using the documented token-storage choice.
