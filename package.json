@@ -15,11 +15,13 @@
     "build:api": "npm run build --workspace=api",
     "db:validate": "npm run db:validate --workspace=api",
     "db:generate": "npm run db:generate --workspace=api",
-    "db:migrate": "npm run db:migrate --workspace=api"
+    "db:migrate": "npm run db:migrate --workspace=api",
+    "db:seed": "npm run db:seed --workspace=api"
   },
   "allowScripts": {
     "prisma@7.10.1": true,
     "@prisma/engines@7.10.1": true,
-    "better-sqlite3@12.11.1": true
+    "better-sqlite3@12.11.1": true,
+    "esbuild@0.28.2": true
   }
 }

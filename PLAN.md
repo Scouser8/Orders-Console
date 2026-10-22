@@ -636,7 +636,7 @@ Provide either a two-minute screen recording or three screenshots demonstrating 
 
 ## 17. Implementation Priority
 
-This is a priority overview, not a second task checklist. Section 18 is the authoritative source for step order and completion.
+This is a priority overview, not a second task checklist. Section 18 is the authoritative source for step order and completion. After database preparation, finish authentication across backend and frontend, then R1 across both, then R2 across both. Keep a separate micro-commit for each checklist step.
 
 ### P0 — Core Mandatory Functionality
 
@@ -677,13 +677,13 @@ Known scaffold issue from step 6 verification: full API typechecking reports `TS
 4. [x] Add root frontend/backend development and build scripts.
 5. [x] Configure Prisma/SQLite and `.env.example`; document required local configuration without creating or reading a real `.env`.
 6. [x] Add database models, constraints, and query indexes; document index purpose and search limitations.
-7. [ ] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
+7. [x] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
 8. [ ] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
 9. [ ] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
 10. [ ] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
-11. [ ] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
-12. [ ] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
-13. [ ] Implement login and protected frontend routes using the documented token-storage choice.
+11. [ ] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
+12. [ ] Implement login and protected frontend routes using the documented token-storage choice.
+13. [ ] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
 14. [ ] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
 15. [ ] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
 16. [ ] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
