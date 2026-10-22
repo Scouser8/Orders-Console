@@ -36,7 +36,14 @@ npm run db:seed
 
 The database is stored at `apps/api/prisma/dev.db`; SQLite needs no separate server. Keep secrets and real environment files out of Git.
 
-The seed creates 50,000 demo orders with 1–5 items each. Rerunning it adds missing demo orders without deleting existing data or overwriting edits. Demo users will be added in the next step.
+The seed creates 50,000 demo orders with 1–5 items each, plus the demo accounts below. Rerunning adds missing records without deleting data or resetting existing orders, passwords, or roles.
+
+| Role  | Email             | Demo password |
+| ----- | ----------------- | ------------- |
+| ADMIN | admin@example.com | DemoAdmin123! |
+| AGENT | agent@example.com | DemoAgent123! |
+
+These credentials are for local demo use only; the database stores bcrypt hashes. Login is not implemented yet.
 
 Start each app in a separate terminal:
 
@@ -65,6 +72,6 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: demo users, authentication, R1/R2, and duplicate proof are pending. `npm run test:duplicate` and demo credentials will be documented when implemented.
+Development is ongoing: authentication, R1/R2, and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
 
 The security-review findings/fixes, token-storage explanation, and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.

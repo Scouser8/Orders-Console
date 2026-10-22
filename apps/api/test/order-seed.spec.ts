@@ -4,8 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
+import { compareSync, getRounds } from 'bcryptjs';
 
-it('seeds 50,000 valid orders and reruns without duplicating or overwriting data', () => {
+it('seeds orders and hashed demo users, and preserves existing data on reruns', () => {
   const directory = mkdtempSync(join(tmpdir(), 'sarh-order-seed-'));
   const databasePath = join(directory, 'seed.db');
   const options = {
@@ -23,6 +24,26 @@ it('seeds 50,000 valid orders and reruns without duplicating or overwriting data
     execSync('npm run db:generate', options);
     execSync('npm run db:seed', options);
     db = new DatabaseSync(databasePath);
+
+    const users = db
+      .prepare(
+        'SELECT id, email, role, passwordHash FROM "User" ORDER BY email',
+      )
+      .all();
+    expect(users).toHaveLength(2);
+    for (const { email, role, password } of [
+      { email: 'admin@example.com', role: 'ADMIN', password: 'DemoAdmin123!' },
+      { email: 'agent@example.com', role: 'AGENT', password: 'DemoAgent123!' },
+    ]) {
+      const user = users.find((record) => record.email === email);
+      expect(user?.role).toBe(role);
+      expect(typeof user?.passwordHash).toBe('string');
+      const passwordHash = String(user?.passwordHash);
+      expect(passwordHash).not.toBe(password);
+      expect(getRounds(passwordHash)).toBe(12);
+      expect(compareSync(password, passwordHash)).toBe(true);
+      expect(compareSync('incorrect-password', passwordHash)).toBe(false);
+    }
 
     expect(db.prepare('SELECT COUNT(*) AS count FROM "Order"').get()).toEqual({
       count: 50_000,
@@ -67,6 +88,13 @@ it('seeds 50,000 valid orders and reruns without duplicating or overwriting data
 
     execSync('npm run db:seed', options);
 
+    expect(
+      db
+        .prepare(
+          'SELECT id, email, role, passwordHash FROM "User" ORDER BY email',
+        )
+        .all(),
+    ).toEqual(users);
     expect(db.prepare('SELECT COUNT(*) AS count FROM "Order"').get()).toEqual({
       count: 50_001,
     });

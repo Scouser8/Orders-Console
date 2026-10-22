@@ -1,4 +1,18 @@
-import { OrderStatus } from '../../../src/generated/prisma/enums.js';
+import { OrderStatus, Role } from '../../../src/generated/prisma/enums.js';
+
+export const SEED_PASSWORD_HASH_ROUNDS = 12;
+export const SEED_USERS = [
+  {
+    email: 'admin@example.com',
+    password: 'DemoAdmin123!',
+    role: Role.ADMIN,
+  },
+  {
+    email: 'agent@example.com',
+    password: 'DemoAgent123!',
+    role: Role.AGENT,
+  },
+] as const;
 
 export const SEED_ORDER_COUNT = 50_000;
 export const SEED_BATCH_SIZE = 500;

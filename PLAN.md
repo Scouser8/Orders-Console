@@ -678,7 +678,7 @@ Known scaffold issue from step 6 verification: full API typechecking reports `TS
 5. [x] Configure Prisma/SQLite and `.env.example`; document required local configuration without creating or reading a real `.env`.
 6. [x] Add database models, constraints, and query indexes; document index purpose and search limitations.
 7. [x] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
-8. [ ] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
+8. [x] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
 9. [ ] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
 10. [ ] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
 11. [ ] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.

@@ -6,12 +6,14 @@ import {
   SEED_ORDER_COUNT,
 } from './seed/constants/seed.constants.js';
 import { createSeedOrder } from './seed/utils/create-seed-order.js';
+import { seedUsers } from './seed/utils/seed-users.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: env('DATABASE_URL') }),
 });
 
 try {
+  await seedUsers(prisma);
   let createdCount = 0;
 
   for (let offset = 0; offset < SEED_ORDER_COUNT; offset += SEED_BATCH_SIZE) {
@@ -43,6 +45,9 @@ try {
 
   console.log(
     `Added ${createdCount} demo orders; ${SEED_ORDER_COUNT - createdCount} were already present.`,
+  );
+  console.log(
+    'Demo admin and agent accounts are available. Existing users were not reset.',
   );
 } finally {
   await prisma.$disconnect();
