@@ -12,6 +12,12 @@
     "dev:web": "npm run dev --workspace=web",
     "dev:api": "npm run start:dev --workspace=api",
     "build:web": "npm run build --workspace=web",
-    "build:api": "npm run build --workspace=api"
+    "build:api": "npm run build --workspace=api",
+    "db:validate": "npm run db:validate --workspace=api"
+  },
+  "allowScripts": {
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true,
+    "better-sqlite3@12.11.1": true
   }
 }

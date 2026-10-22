@@ -662,7 +662,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 2. [x] Scaffold React/Vite/TypeScript app.
 3. [x] Scaffold NestJS app.
 4. [x] Add root frontend/backend development and build scripts.
-5. [ ] Configure Prisma/SQLite and `.env.example`; document required local configuration without creating or reading a real `.env`.
+5. [x] Configure Prisma/SQLite and `.env.example`; document required local configuration without creating or reading a real `.env`.
 6. [ ] Add database models, constraints, and query indexes; document index purpose and search limitations.
 7. [ ] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
 8. [ ] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
