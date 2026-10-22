@@ -20,7 +20,9 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "db:validate": "prisma validate"
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma db execute --file prisma/initialize.sql && prisma migrate deploy"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

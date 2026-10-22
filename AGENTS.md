@@ -43,6 +43,7 @@ Code organization:
 Setup and acceptance:
 
 - Maintain `.env.example` with every required setting and safe placeholders. Do not create, read, or commit a real `.env`; keep real environment files ignored.
+- Keep README concise and assessment-focused; avoid schema walkthroughs or internal maintenance manuals.
 - Keep README instructions current: supported Node/npm versions, installation, local configuration and JWT-secret generation, database initialization, seeding, running both apps, URLs, demo login, and tests. Verify from a clean starting point before completion.
 - Add root `npm run db:seed` and `npm run test:duplicate` with their respective implementation steps, not during documentation-only work. Store hashed demo passwords in the database; readable demo credentials may appear in README.
 - R1 must pass three rapid filter changes with delayed earlier responses: older results cannot override the latest filter.

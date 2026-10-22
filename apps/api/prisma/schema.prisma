@@ -8,3 +8,63 @@ generator client {
 datasource db {
   provider = "sqlite"
 }
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  passwordHash       String
+  role               Role                @default(AGENT)
+  createdAt          DateTime            @default(now())
+  idempotencyRecords IdempotencyRecord[]
+}
+
+model Order {
+  id                String             @id @default(cuid())
+  customerName      String
+  customerEmail     String
+  status            OrderStatus        @default(PENDING)
+  totalAmount       Int
+  createdAt         DateTime           @default(now())
+  items             OrderItem[]
+  idempotencyRecord IdempotencyRecord?
+
+  @@index([createdAt, id])
+  @@index([totalAmount, id])
+  @@index([status, createdAt, id])
+  @@index([status, totalAmount, id])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  name      String
+  quantity  Int
+  unitPrice Int
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model IdempotencyRecord {
+  userId      String
+  key         String
+  requestHash String
+  orderId     String?  @unique
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@id([userId, key])
+}

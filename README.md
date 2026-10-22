@@ -1,22 +1,16 @@
 # SARH Orders Console
 
-React/Vite frontend and NestJS API in an npm workspace, with Prisma and local SQLite.
-Implementation is in progress; database models, seeding, authentication, and order features are not available yet.
+React/Vite frontend, NestJS API, and Prisma/SQLite database. Implementation is in progress.
 
-## Prerequisites
+## Setup and run
 
-- Node.js 24.22+ (24.x)
-- npm 12.2+ (12.x)
-
-These versions match the development environment. Install dependencies from the repository root:
+Requires Node.js 24.22+ (24.x) and npm 12.2+ (12.x). Run commands from the repository root.
 
 ```bash
 npm ci
 ```
 
-## Local configuration
-
-Use the root `.env.example` as a reference. Supply its values in your shell; no real `.env` file is required or loaded.
+Use `.env.example` as the configuration reference. Set values in your shell; no real `.env` file is required or loaded.
 
 macOS/Linux:
 
@@ -32,23 +26,16 @@ $env:DATABASE_URL = 'file:./prisma/dev.db'
 $env:PORT = '3000'
 ```
 
-`DATABASE_URL` is required by the Prisma CLI. With the workspace commands below, the SQLite file path is relative to `apps/api`, so this value targets `apps/api/prisma/dev.db`. SQLite needs no separate database server. `PORT` sets the API port; it defaults to `3000`.
-
-Keep real environment files and secrets out of Git. Authentication configuration and JWT-secret generation instructions will be added with authentication.
-
-## Database configuration
-
-Validate the Prisma configuration after setting `DATABASE_URL`:
+Create/update the local database and generate Prisma Client:
 
 ```bash
-npm run db:validate
+npm run db:migrate
+npm run db:generate
 ```
 
-The datasource is configured for SQLite. Database models, migrations, and client generation belong to the next implementation step; no application tables exist yet. Seed and duplicate-proof commands will be added with their respective features.
+The database is stored at `apps/api/prisma/dev.db`; SQLite needs no separate server. Keep secrets and real environment files out of Git.
 
-## Run the apps
-
-From the repository root, run each app in its own terminal:
+Start each app in a separate terminal:
 
 ```bash
 npm run dev:api
@@ -58,15 +45,23 @@ npm run dev:api
 npm run dev:web
 ```
 
-- API scaffold: <http://localhost:3000>
-- Frontend: <http://localhost:5173> (Vite prints the actual URL if the port is occupied)
+API: <http://localhost:3000>. Frontend: <http://localhost:5173> (or the URL Vite prints).
 
-## Checks
+## Tests
 
 ```bash
-npm run build:api
-npm run build:web
-npm run lint --workspace=api
-npm run lint --workspace=web
+npm run db:validate
 npm run test --workspace=api
 ```
+
+The tests currently cover the scaffold and database constraints. The R2 parallel-request proof is not implemented yet.
+
+## Indexes
+
+Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/pagination, plus `(status, createdAt, id)` and `(status, totalAmount, id)` for status-filtered queries. Line items use `(orderId)` for lookup and deletion. These indexes do not accelerate arbitrary customer-name/email substring searches.
+
+## What I skipped and why
+
+Development is ongoing: the 50,000-order seed, demo users, authentication, R1/R2, and duplicate proof are pending. `npm run db:seed`, `npm run test:duplicate`, and demo credentials will be documented when implemented.
+
+The security-review findings/fixes, token-storage explanation, and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.

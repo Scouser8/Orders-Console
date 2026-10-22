@@ -198,7 +198,6 @@ User
 
 Order
 - id
-- idempotencyKey UNIQUE
 - customerName
 - customerEmail
 - status
@@ -211,7 +210,17 @@ OrderItem
 - name
 - quantity
 - unitPrice
+
+IdempotencyRecord
+- userId + key UNIQUE (composite primary key)
+- requestHash
+- orderId UNIQUE, nullable after order deletion
+- createdAt
 ```
+
+Use the dedicated idempotency-record option from section 4. Scope keys to the authenticated user, and preserve records when their order is deleted. The schema uses `SetNull` for that order reference and cascading deletion for line items.
+
+MVP assumptions: one currency (SAR, stored as integer halalas); roles `ADMIN`/`AGENT`; statuses `PENDING`, `PROCESSING`, `COMPLETED`, and `CANCELLED`. The initial migration enforces valid enums, nonnegative integer money within Prisma's `Int` range, and positive integer quantities. Document and preserve SQL-only checks when changing the schema.
 
 Use integer smallest-currency units for money rather than floating-point values.
 
@@ -523,6 +532,8 @@ Do not implement O2 if it risks R1, R2, security, README, DECISIONS.md, or SCALE
 
 ### README.md
 
+Keep README concise and assessment-focused: setup/run/seed/test instructions, demo access, security findings and token storage, the product answer, indexes, and omissions. Keep detailed schema walkthroughs, numeric limits, and migration-maintenance explanations in the plan or relevant code instead.
+
 Must contain:
 
 - supported Node.js and npm versions, verified against the chosen dependencies
@@ -658,12 +669,14 @@ Each item is one intended micro-commit boundary. Ship security and correctness w
 
 Completed setup is supported by existing files and commits `f72af43`, `21a5588`, `8e19622`, and `5a1afb0`; these checks record scaffold presence, not a fresh validation of those commits.
 
+Known scaffold issue from step 6 verification: full API typechecking reports `TS2307` for the existing `supertest/types` import in `apps/api/test/app.e2e-spec.ts`. The API build, schema-test typecheck, and unit/schema tests pass. Resolve the unrelated import before final submission verification.
+
 1. [x] Initialize repository and npm workspace.
 2. [x] Scaffold React/Vite/TypeScript app.
 3. [x] Scaffold NestJS app.
 4. [x] Add root frontend/backend development and build scripts.
 5. [x] Configure Prisma/SQLite and `.env.example`; document required local configuration without creating or reading a real `.env`.
-6. [ ] Add database models, constraints, and query indexes; document index purpose and search limitations.
+6. [x] Add database models, constraints, and query indexes; document index purpose and search limitations.
 7. [ ] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
 8. [ ] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
 9. [ ] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
