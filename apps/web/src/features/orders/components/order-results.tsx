@@ -10,17 +10,29 @@ import {
 } from "../constants/order.constants";
 import { getOrderSortOption } from "../utils/get-order-sort-option";
 import type { OrderResultsProps } from "../types/order-table.types";
+import { useCreatedOrderFocus } from "../hooks/use-created-order-focus";
 
-export function OrderResults({ table, query }: OrderResultsProps) {
+export function OrderResults({
+  table,
+  query,
+  createdOrderId,
+  focusedOrderRef,
+}: OrderResultsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sortLabel = getOrderSortOption(table.getState().sorting).label;
   const rows = table.getRowModel().rows;
-  const virtualizer = useVirtualizer({
+  const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ORDER_ROW_HEIGHT,
     getItemKey: (index) => rows[index].id,
     overscan: ORDER_OVERSCAN,
+  });
+  const focusCreatedRow = useCreatedOrderFocus({
+    createdOrderId,
+    focusedOrderRef,
+    rows,
+    virtualizer,
   });
   const virtualRows = virtualizer.getVirtualItems();
   const lastVisibleIndex = virtualRows.at(-1)?.index ?? -1;
@@ -118,8 +130,11 @@ export function OrderResults({ table, query }: OrderResultsProps) {
               return (
                 <tr
                   key={row.id}
+                  ref={focusCreatedRow}
+                  data-order-id={row.id}
+                  tabIndex={row.id === createdOrderId ? -1 : undefined}
                   aria-rowindex={virtualRow.index + 2}
-                  className="absolute flex w-full border-b border-slate-100 hover:bg-slate-50"
+                  className="absolute flex w-full border-b border-slate-100 transition-colors duration-700 hover:bg-slate-50 focus:bg-emerald-50 focus:outline-2 focus:-outline-offset-2 focus:outline-emerald-500 motion-reduce:transition-none"
                   style={{
                     height: ORDER_ROW_HEIGHT,
                     transform: `translateY(${virtualRow.start}px)`,

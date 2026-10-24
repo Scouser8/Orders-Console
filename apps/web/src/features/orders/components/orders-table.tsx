@@ -1,12 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { ORDER_COLUMNS } from "../constants/order-columns";
 import { useOrders } from "../hooks/use-orders";
 import { useOrderTableState } from "../hooks/use-order-table-state";
 import { OrderControls } from "./order-controls";
 import { OrderResults } from "./order-results";
+import type { OrdersTableProps } from "../types/order-table.types";
 
-export function OrdersTable() {
+export function OrdersTable({ createdOrderId }: OrdersTableProps) {
+  const focusedOrderRef = useRef<string | null>(null);
   const { query: filters, ...tableState } = useOrderTableState();
   const query = useOrders(filters);
   const data = useMemo(
@@ -29,7 +31,13 @@ export function OrdersTable() {
     <div className="mt-6">
       <OrderControls table={table} />
       {/* A different query starts at the top with a fresh virtual viewport. */}
-      <OrderResults key={JSON.stringify(filters)} table={table} query={query} />
+      <OrderResults
+        key={JSON.stringify(filters)}
+        table={table}
+        query={query}
+        createdOrderId={createdOrderId}
+        focusedOrderRef={focusedOrderRef}
+      />
     </div>
   );
 }

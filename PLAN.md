@@ -150,6 +150,10 @@ Reuse the same key across:
 
 Generate a new key only for a new logical order.
 
+The create form accepts SAR prices with up to two decimal places and converts them to integer halalas without floating-point rounding. Retain a key and payload snapshot while the form is mounted; block duplicate in-flight submissions and retry an uncertain outcome with the same snapshot after a 30-second request timeout, network error, or server error. Keep fields locked until confirmation; a `400` allows corrections while retaining the same key. After success (or terminal `409`/`410`), require an explicit new-order action before generating another key. Refreshing or signing out loses the client snapshot, so retry uncertain outcomes before leaving the form. Invalidate order queries after confirmed success.
+
+Confirmed-create feedback: reset the table to unfiltered newest-first results, then scroll to and focus the saved row with a green focus highlight. Wait for the server-backed row to render, respect reduced-motion preferences, and reveal it only once so later filtering does not steal focus. This is success feedback for the create form; the next numbered implementation step remains the duplicate-proof command.
+
 ### Server
 
 Accept an `Idempotency-Key` header.
@@ -691,7 +695,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 14. [x] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
 15. [x] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
 16. [x] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
-17. [ ] Implement the validated create form, calculated total, and idempotency-key reuse across double-clicks, retries, and timeout resubmissions.
+17. [x] Implement the validated create form, calculated total, and idempotency-key reuse across double-clicks, retries, and timeout resubmissions.
 18. [ ] Add root `npm run test:duplicate`: send matching authenticated create requests in parallel, verify exactly one persisted order, and fail the command if duplication occurs.
 19. [ ] Write the README middleware-review findings, implemented fixes, and two- or three-sentence token-storage explanation.
 20. [ ] Write DECISIONS.md with exactly three actual decisions of five to eight lines each, including R2 limits and truthful AI disclosure.

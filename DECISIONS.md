@@ -11,6 +11,6 @@ In progress: the remaining two decisions and final review belong to checklist st
 - Return `201` for creation and matching retries, returning the stored order rather than a frozen response snapshot.
 - A concurrent uniqueness loser reads the committed winner and replays it, or returns `409` for a conflicting payload.
 - Retain keys without automatic expiry for the database's lifetime; deletion preserves a tombstone and matching retries return `410`.
-- Different keys may create identical orders; resetting the database ends the guarantee, and transient write failures should be retried with the same key within SQLite's single-writer limits.
+- Different keys may create identical orders; the form retains its pending key/payload only while mounted, so retry before refreshing/signing out. Resetting the database ends the guarantee; transient write failures require the same key within SQLite's single-writer limits.
 
 AI usage so far: OpenAI Codex assisted with planning, implementation, documentation, and automated tests. Final disclosure will be reviewed with the completed submission.

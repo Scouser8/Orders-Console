@@ -24,6 +24,7 @@ export const DEFAULT_ORDER_QUERY: OrderQuery = {
   sortDirection: "desc",
 };
 export const orderQueryKeys = {
+  all: ["orders"] as const,
   list: (userId: string | undefined, query: OrderQuery) =>
     ["orders", userId, query] as const,
 };

@@ -20,6 +20,7 @@ import {
 } from "./constants/order.constants";
 import { useOrders } from "./hooks/use-orders";
 import type { Order, OrderQuery } from "./types/order.types";
+import { HomePage } from "../../pages/home-page";
 
 const auth: AuthContextValue = {
   session: {
@@ -51,11 +52,21 @@ function page(
 
 describe("orders table", () => {
   const fetchMock = vi.fn<typeof fetch>();
+  const scrollIntoViewMock = vi.fn();
+  const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "scrollIntoView",
+  );
   let client: QueryClient;
   beforeEach(() => {
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
+    scrollIntoViewMock.mockReset();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoViewMock,
+    });
     // jsdom has no layout; retain the real virtualizer with a measured viewport.
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(480);
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000);
@@ -73,6 +84,13 @@ describe("orders table", () => {
     client.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    if (originalScrollIntoView)
+      Object.defineProperty(
+        HTMLElement.prototype,
+        "scrollIntoView",
+        originalScrollIntoView,
+      );
+    else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
   });
   function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -363,4 +381,108 @@ describe("orders table", () => {
     expect(screen.queryByText("Customer 50")).toBeNull();
     expect(screen.getByText("1 orders loaded · Newest first")).toBeDefined();
   });
+
+  it.each([false, true])(
+    "reveals a confirmed order, clears filters, and focuses its row once (reduced motion: %s)",
+    async (reducedMotion) => {
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn().mockReturnValue({ matches: reducedMotion }),
+      );
+      let saved = false;
+      let confirmCreation!: () => void;
+      const created = {
+        id: "new-order",
+        customerName: "New Customer",
+        customerEmail: "new@example.com",
+        totalAmount: 1000,
+        status: "PENDING",
+        createdAt: "2026-10-24T10:00:00.000Z",
+        items: [
+          { id: "new-item", name: "Keyboard", quantity: 1, unitPrice: 1000 },
+        ],
+      };
+      fetchMock.mockImplementation(async (_url, options) => {
+        if (options?.method === "POST")
+          return new Promise<Response>((resolve) => {
+            confirmCreation = () => {
+              saved = true;
+              resolve(Response.json(created, { status: 201 }));
+            };
+          });
+        return Response.json(
+          saved ? { items: [created], nextCursor: null } : page(0, 50, null),
+        );
+      });
+      render(<HomePage />, { wrapper: Wrapper });
+      await screen.findByText("Customer 0");
+      fireEvent.change(screen.getByLabelText("Search customers"), {
+        target: { value: "Old customer" },
+      });
+      fireEvent.change(screen.getByLabelText("Status"), {
+        target: { value: "COMPLETED" },
+      });
+      fireEvent.change(screen.getByLabelText("Sort orders"), {
+        target: { value: "lowest" },
+      });
+      await screen.findByText("50 orders loaded · Lowest total first");
+      fireEvent.scroll(
+        screen.getByRole("region", { name: "Scrollable orders" }),
+        { target: { scrollTop: 10 * ORDER_ROW_HEIGHT } },
+      );
+
+      fireEvent.change(screen.getByLabelText("Customer name"), {
+        target: { value: "New Customer" },
+      });
+      fireEvent.change(screen.getByLabelText("Customer email"), {
+        target: { value: "new@example.com" },
+      });
+      fireEvent.change(screen.getByLabelText("Item name"), {
+        target: { value: "Keyboard" },
+      });
+      fireEvent.change(screen.getByLabelText("Unit price (SAR)"), {
+        target: { value: "10.00" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Create order" }));
+      await screen.findByRole("button", { name: "Creating order…" });
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+      expect(screen.getByLabelText("Status")).toHaveProperty(
+        "value",
+        "COMPLETED",
+      );
+      await act(async () => {
+        confirmCreation();
+      });
+
+      const row = (await screen.findByText("new-order")).closest("tr");
+      await waitFor(() => expect(document.activeElement).toBe(row));
+      expect(row?.className).toContain("focus:bg-emerald-50");
+      expect(scrollIntoViewMock).toHaveBeenCalledExactlyOnceWith({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      expect(screen.getByLabelText("Search customers")).toHaveProperty(
+        "value",
+        "",
+      );
+      expect(screen.getByLabelText("Status")).toHaveProperty("value", "");
+      expect(screen.getByLabelText("Sort orders")).toHaveProperty(
+        "value",
+        "newest",
+      );
+      expect(
+        screen.getByRole("region", { name: "Scrollable orders" }).scrollTop,
+      ).toBe(0);
+      expect(screen.getByText("1 orders loaded · Newest first")).toBeDefined();
+
+      // Changing filters remounts the virtual viewport, but must not steal focus.
+      const search = screen.getByLabelText("Search customers");
+      search.focus();
+      fireEvent.change(search, { target: { value: "New Customer" } });
+      await screen.findByText("new-order");
+      expect(document.activeElement).toBe(search);
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    },
+  );
 });
