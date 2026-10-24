@@ -702,7 +702,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 19. [x] Write the README middleware-review findings, implemented fixes, and two- or three-sentence token-storage explanation.
 20. [x] Write DECISIONS.md with exactly three actual decisions of five to eight lines each, including R2 limits and truthful AI disclosure.
 21. [x] Write the one-page SCALE.md grounded in the implementation.
-22. [ ] Complete README prerequisites, ordered setup/configuration/database/seed/run/test instructions, URLs, demo login, indexes, five-line product answer, and omissions.
+22. [x] Complete README prerequisites, ordered setup/configuration/database/seed/run/test instructions, URLs, demo login, indexes, five-line product answer, and omissions.
 23. [ ] Verify fresh local setup from README in under five minutes without paid/hosted services; prepare a two-minute recording or three screenshots showing R1 rapid-filter correctness and R2 duplicate proof.
 
 Optional only after all mandatory steps and when requested by the user:

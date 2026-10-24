@@ -28,4 +28,6 @@
 - Before that move, revisit search indexes, connection pooling, backups, and monitoring.
 - SQLite is a practical assessment choice, not a claim that it is the right production database at every scale.
 
-AI usage: I used OpenAI Codex to save time on planning, implementation, documentation, and tests. I ran the relevant checks and reviewed each accepted change before moving on. I did not review every AI-generated test file line by line, so those tests support the review but do not replace it. The UI focuses on the assessment requirements rather than visual polish.
+## AI Disclosure
+
+I used OpenAI Codex to save time on planning, implementation, documentation, and tests. Lovable provided suggestions for the scaling memo. I ran the relevant checks and reviewed each accepted change before moving on. I did not review every AI-generated test file line by line, so those tests support the review but do not replace manual review. The UI focuses on the assessment requirements rather than visual polish.

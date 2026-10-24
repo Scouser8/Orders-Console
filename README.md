@@ -1,16 +1,20 @@
 # SARH Orders Console
 
-React/Vite frontend, NestJS API, and Prisma/SQLite database. Implementation is in progress.
+An orders console built with React/Vite, NestJS, and Prisma/SQLite. Design choices are in [DECISIONS.md](DECISIONS.md), with scaling notes in [SCALE.md](SCALE.md).
 
-## Setup and run
+## Setup and Run
 
 Requires Node.js 24.22+ (24.x) and npm 12.2+ (12.x). Run commands from the repository root.
 
+Clone the submitted repository and open its folder, then install dependencies:
+
 ```bash
+git clone <repository-url> sarh-orders-console
+cd sarh-orders-console
 npm ci
 ```
 
-Use `.env.example` as the configuration reference. Set values in your shell; no real `.env` file is required or loaded.
+Replace `<repository-url>` with the submitted Git URL. Use `.env.example` as the configuration reference. Run the configuration commands below in the terminal you will use for database setup and the API; they set values for that terminal session, without editing any files. No real `.env` file is required or loaded.
 
 macOS/Linux:
 
@@ -40,7 +44,7 @@ The database is stored at `apps/api/prisma/dev.db`; SQLite needs no separate ser
 
 `JWT_SECRET` is required to start the API. The commands above generate a random secret; keep it in the API terminal's environment. Changing it invalidates previously issued tokens.
 
-The seed creates 50,000 demo orders with 1–5 items each, plus the demo accounts below. Rerunning adds missing records without deleting data or resetting existing orders, passwords, or roles.
+The seed creates 50,000 demo orders with 1–5 items each, plus the demo accounts below. It is safe to rerun: existing data and credentials are preserved.
 
 | Role  | Email             | Demo password |
 | ----- | ----------------- | ------------- |
@@ -49,11 +53,13 @@ The seed creates 50,000 demo orders with 1–5 items each, plus the demo account
 
 These credentials are for local demo use only; the database stores bcrypt hashes.
 
-Start each app in a separate terminal:
+Start the API in the same terminal where you set the configuration:
 
 ```bash
 npm run dev:api
 ```
+
+Open a second terminal in the repository root for the frontend:
 
 ```bash
 npm run dev:web
@@ -63,23 +69,19 @@ API: <http://localhost:3000>. Frontend: <http://localhost:5173> (or the URL Vite
 
 Vite forwards browser requests under `/api` to `http://127.0.0.1:3000` in development and preview. If the API uses another address or port, set `API_PROXY_TARGET` in the frontend terminal.
 
-## Login
+## R1 and R2 Implementation
 
-Open the frontend and sign in with either demo account above. Search by customer name/email, filter by status, and sort by date or total in either direction. Scroll to load more orders, or use **Load more**. Rows are virtualized, with loading, empty, and retry states. **Sign out** clears the local session and cached server data.
+Sign in with either demo account. The console supports server-side search, status filtering, sorting, cursor pagination, infinite loading, and virtualized rows. Both roles can list and create orders; only admins can delete an individual order.
 
-`POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes.
+The JWT is kept in React memory and sent as a Bearer token. It expires after one hour, and refreshing the page signs the user out. It is not stored in localStorage or cookies, which limits persistent token exposure and avoids cookie-based CSRF; persistent login is intentionally deferred.
 
-The token lives only in React memory and is sent explicitly in the Authorization header; reloading signs you out. It is not persisted in localStorage or cookies, reducing persistent token exposure and avoiding cookie-based CSRF. Active XSS can still use a live session, and signing out locally does not revoke a token before its server expiry.
+The create form validates customer details and items, calculates a preview total, and sends an idempotency key. The server recalculates the total and saves the order and items atomically. Retries reuse the same key; a confirmed save refreshes the table and highlights the new row.
 
-The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue. Changing frontend controls resets the viewport and starts the matching query from its first page; older requests are cancelled.
+## Database Indexes
 
-Use **Create order** to enter customer details and add/remove items; enter prices in SAR with up to two decimal places. After a failed or timed-out request, keep the form open and use **Retry order** to resend the same submission safely. After confirmation, **Create another order** starts a new submission; refreshing or signing out loses the pending client key and form.
+Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting, plus status-specific versions for filtered lists. Line items use `(orderId)`. Customer name/email search is substring matching and is not claimed to be accelerated by these indexes.
 
-After a confirmed save, the table resets to unfiltered newest-first results and scrolls to the saved row with a green focus highlight. Reduced-motion preferences are respected.
-
-`POST /api/orders` requires authentication and an `Idempotency-Key` header. Send `customerName`, `customerEmail`, and `items` containing `name`, integer `quantity`, and integer `unitPrice` in halalas; the server calculates the total and saves everything atomically. Reuse the same key for retries of one logical submission; matching requests return the stored order (`201`), changed payloads return `409`, and retries after deletion return `410`. See [R2 guarantees and limits](DECISIONS.md).
-
-## Tests
+## Verification and Evidence
 
 ```bash
 npm run db:validate
@@ -89,31 +91,49 @@ npm run test --workspace=web
 npm run test:duplicate
 ```
 
-Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, orders search/filter/sort/pagination, and validated order creation. The creation integration tests cover matching and conflicting parallel requests, replay after deletion, and rollback on database failures. They use temporary test configuration and databases. `npm run test:duplicate` runs its own small proof test: it starts a temporary API/database, logs in as the seeded agent, sends two matching authenticated requests with one key, and prints both statuses, both returned IDs, and the final persisted counts. It exits unsuccessfully if the IDs differ or the order count is not exactly one.
+Run these after installation and Prisma Client generation. API tests use temporary databases and do not modify the demo database.
 
-Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries. The R1 race test holds the first two responses, changes the status filter three times quickly, resolves the latest response first, and then releases the older responses. Only the latest results should remain visible. This gives us a repeatable demo even when local requests normally finish too quickly.
+### R1: Rapid Filter Changes
 
-Create-form tests check validation, repeatable items, exact money conversion, double submissions, timeout/lost-response key reuse, and order-query refresh after success.
+```bash
+npm run test --workspace=web -- src/features/orders/orders-table.spec.tsx -t "three rapid status changes" --reporter=verbose
+```
 
-## Security review (in progress)
+This test holds earlier responses, changes the status three times, resolves the latest response first, and then releases the older responses. It checks that outdated results never appear, even when the mocked server ignores cancellation. The delay is only in the test.
 
-- Hardcoded JWT secret: replaced with required environment configuration, with no fallback secret.
-- Decode-only authentication and missing expiry: tokens are signed, expire after one hour, and are verified using HS256. Tokens without expiry are rejected.
-- Query-string tokens and loose header parsing: only a valid Bearer header is accepted.
-- Plaintext password lookup: credentials are checked against bcrypt hashes; incorrect credentials receive a generic error.
-- Unvalidated login input: DTO validation rejects malformed fields, extra properties, and passwords beyond bcrypt's 72-byte limit.
-- Frontend-only admin checks: `DELETE /api/orders/:id` now requires verified authentication and the current database role `ADMIN`. Agents receive `403`; missing orders return `404`. Deletion removes line items but keeps the idempotency key reserved. Frontend route protection is only a UI convenience.
+### R2: Duplicate-Safe Order Creation
 
-## Indexes
+`npm run test:duplicate` runs one dedicated R2 proof. It starts a temporary API/database, logs in as the seeded agent, and sends two matching requests in parallel with the same key. Expected output (IDs vary):
 
-Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/pagination, plus `(status, createdAt, id)` and `(status, totalAmount, id)` for status-filtered queries. Line items use `(orderId)` for lookup and deletion. These indexes do not accelerate arbitrary customer-name/email substring searches.
+```text
+R2 duplicate proof
+- request statuses: 201, 201
+- returned order IDs: same-id, same-id
+- persisted counts: {"orders":1,"items":1,"idempotencyRecords":1}
+```
 
-## What I skipped and why
+The command exits with an error if either request fails, the IDs differ, or the persisted counts are wrong. The full suites also cover validation, authentication, authorization, pagination, cancellation, retries, and atomic order creation.
 
-Submission screenshots/recording and fresh-setup verification are still pending.
+## Code Review Findings and Fixes
 
-## Product question: “Delete all cancelled orders”
+The PDF's code-review concerns were in the supplied middleware and login/delete routes. The table below maps each problem to the fix in this implementation.
+
+| Problem in the supplied code                                                                                              | Fix in this implementation                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The JWT secret was hardcoded, so anyone with the source could create tokens.                                              | `JWT_SECRET` is required from the environment; there is no fallback secret. Nest's `JwtService` signs and verifies tokens with it.                                                                                                                                                                                                                                                                         |
+| The middleware decoded a token but did not verify its signature or expiry. A modified or expired token could be accepted. | [`auth.service.ts:34`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/auth/auth.service.ts:34) uses `verifyAsync`, and rejects tokens without a valid `sub` and `exp`.                                                                                                                                                                                           |
+| A token could be supplied through the URL query string, which can leak through browser history and logs.                  | [`jwt-auth.guard.ts:15`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/auth/guards/jwt-auth.guard.ts:15) reads only `Authorization: Bearer <token>`. Query-string tokens are ignored.                                                                                                                                                                           |
+| Passwords were compared or stored as plain text.                                                                          | [`auth.service.ts:19`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/auth/auth.service.ts:19) compares the submitted password with a bcrypt hash. Seeded database values are hashes.                                                                                                                                                                            |
+| Login input was not strictly validated.                                                                                   | [`login.dto.ts:8`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/auth/dto/login.dto.ts:8) validates email and password length; the global Nest validation pipe rejects unknown fields.                                                                                                                                                                          |
+| Admin checks in the frontend could be bypassed by calling the API directly.                                               | [`orders.controller.ts:24`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/orders/orders.controller.ts:24) protects every order route with guards, and [`orders.controller.ts:44`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/orders/orders.controller.ts:44) restricts deletion to `ADMIN`. Agents receive `403`. |
+| The browser should not be the source of authorization.                                                                    | [`roles.guard.ts:16`](/Users/muhammadadel/Projects/job-application-playground/sarh-orders-console/apps/api/src/auth/guards/roles.guard.ts:16) checks the current authenticated database user and role on the server.                                                                                                                                                                                       |
+
+The focused API tests cover missing, malformed, forged, expired, and query-string-only tokens, bcrypt login, agent deletion returning `403`, and successful admin deletion. The frontend route check only controls what the user sees; it is not treated as security.
+
+## Omissions and Deferred Work
+
+I left out the optional stats endpoint and optimistic creation to focus on the required list, creation, and security behavior. Orders appear after server confirmation. Persistent login and more UI polish are also deferred. Submission screenshots/recording and fresh-setup verification are still pending.
+
+## Product Question: “Delete All Cancelled Orders”
 
 First clarify whether the need is less visual clutter, storage reduction, compliance, or reporting. Hard deletion could break auditability and recovery, so I would first propose hiding or archiving cancelled orders with an explicit retention policy. If deletion is later required, define authorization, audit logging, confirmation, retention, and recovery before implementing it. This MVP intentionally supports only authorized single-order deletion; it does not implement bulk deletion.
-
-Optional work has not started while mandatory requirements remain incomplete. I used OpenAI Codex for planning, implementation, documentation, and tests to save time. I ran the checks and reviewed accepted changes, but I did not review every AI-generated test line by line. The UI is intentionally functional rather than highly polished because correctness and security came first.
