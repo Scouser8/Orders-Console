@@ -73,6 +73,8 @@ The token lives only in React memory and is sent explicitly in the Authorization
 
 The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue. Changing frontend controls resets the viewport and starts the matching query from its first page; older requests are cancelled.
 
+`POST /api/orders` requires authentication and an `Idempotency-Key` header. Send `customerName`, `customerEmail`, and `items` containing `name`, integer `quantity`, and integer `unitPrice` in halalas; the server calculates the total and saves everything atomically. Reuse the same key for retries of one logical submission; matching requests return the stored order (`201`), changed payloads return `409`, and retries after deletion return `410`. See [R2 guarantees and limits](DECISIONS.md). The frontend create form is pending.
+
 ## Tests
 
 ```bash
@@ -82,7 +84,7 @@ npm run test:e2e --workspace=api
 npm run test --workspace=web
 ```
 
-Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, and orders search/filter/sort/pagination. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
+Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, orders search/filter/sort/pagination, and validated order creation. Creation integration tests check parallel matching/conflicting requests, replay after deletion, and rollback on database failures. They use temporary test configuration and databases; the dedicated root R2 proof command is pending.
 
 Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries. The R1 test changes status three times, resolves the latest response first, then resolves the older responses and checks that only the latest results remain visible.
 
@@ -101,6 +103,6 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: R2 and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented. Submission screenshots/recording and fresh-setup verification are still pending.
+Development is ongoing: the R2 frontend form and dedicated duplicate-proof command are pending. `npm run test:duplicate` will be documented when implemented. Submission screenshots/recording and fresh-setup verification are still pending.
 
 The five-line product answer is also pending. Optional work has not been started while mandatory requirements remain incomplete.

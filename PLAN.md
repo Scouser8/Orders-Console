@@ -166,6 +166,8 @@ Before exposing the create endpoint, define and document key scope, matching-req
 
 Do not expose an intermediate create endpoint without validation, authentication, atomicity, and database-enforced idempotency.
 
+Create API assumptions: trim customer/item names (1–120 characters), trim/lowercase customer email (maximum 254 characters), accept 1–100 items, integer quantities 1–10,000, and integer unit prices in halalas from zero through Prisma's `Int` maximum. Reject totals exceeding that maximum and reject client-supplied totals, status, IDs, or timestamps. New orders are `PENDING`. Require a 1–128-character `Idempotency-Key` using letters, digits, `.`, `_`, `:`, or `-`, beginning with a letter/digit. Hash normalized validated fields in a fixed property order; item order is significant. Matching retries return `201` with the stored order; different payloads return `409`. Retain keys for the lifetime of the database without automatic expiry; matching retries after deletion return `410`. Detailed replay guarantees and limits belong in the R2 decision alongside this endpoint.
+
 ### Proof
 
 Add an automated proof script or test that:
@@ -688,7 +690,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 13. [x] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
 14. [x] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
 15. [x] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
-16. [ ] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
+16. [x] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
 17. [ ] Implement the validated create form, calculated total, and idempotency-key reuse across double-clicks, retries, and timeout resubmissions.
 18. [ ] Add root `npm run test:duplicate`: send matching authenticated create requests in parallel, verify exactly one persisted order, and fail the command if duplication occurs.
 19. [ ] Write the README middleware-review findings, implemented fixes, and two- or three-sentence token-storage explanation.
