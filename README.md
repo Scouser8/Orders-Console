@@ -82,7 +82,7 @@ Tests cover the scaffold, database constraints, seed/rerun, login, and JWT rejec
 - Query-string tokens and loose header parsing: only a valid Bearer header is accepted.
 - Plaintext password lookup: credentials are checked against bcrypt hashes; incorrect credentials receive a generic error.
 - Unvalidated login input: DTO validation rejects malformed fields, extra properties, and passwords beyond bcrypt's 72-byte limit.
-- Frontend-only admin checks: server-side role authorization is the next step. Client token storage will be documented with frontend login.
+- Frontend-only admin checks: `DELETE /api/orders/:id` now requires verified authentication and the current database role `ADMIN`. Agents receive `403`; missing orders return `404`. Deletion removes line items but keeps the idempotency key reserved. Client token storage will be documented with frontend login.
 
 ## Indexes
 
@@ -90,6 +90,6 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: role authorization, frontend login, R1/R2, and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
+Development is ongoing: frontend login, R1/R2, and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
 
-The remaining security-review fixes, token-storage explanation, and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.
+The client token-storage explanation and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.

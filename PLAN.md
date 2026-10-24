@@ -678,7 +678,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 7. [x] Add the 50,000-order seed with 1–5 items per order and root `npm run db:seed` command.
 8. [x] Extend the seed with ADMIN and AGENT accounts using hashed passwords; document demo credentials.
 9. [x] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
-10. [ ] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
+10. [x] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
 11. [ ] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
 12. [ ] Implement login and protected frontend routes using the documented token-storage choice.
 13. [ ] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
