@@ -1,16 +1,31 @@
 # Decisions
 
-In progress: the remaining two decisions and final review belong to checklist step 20.
-
 ## 1. Database-enforced idempotency for order creation
 
-- Scope each key to the authenticated user using the database's unique `(userId, key)` constraint.
-- Reject payload-hash deduplication as the alternative: separate legitimate orders can contain identical customer and item data, so a per-submission key expresses intent.
-- Hash normalized validated fields with SHA-256 in a fixed property order; item order matters, and a different payload with the same key returns `409`.
-- Create the record, order, and items in one atomic Prisma nested write; calculate integer-money totals on the server.
-- Return `201` for creation and matching retries, returning the stored order rather than a frozen response snapshot.
-- A concurrent uniqueness loser reads the committed winner and replays it, or returns `409` for a conflicting payload.
-- Retain keys without automatic expiry for the database's lifetime; deletion preserves a tombstone and matching retries return `410`.
-- Different keys may create identical orders; the form retains its pending key/payload only while mounted, so retry before refreshing/signing out. Resetting the database ends the guarantee; transient write failures require the same key within SQLite's single-writer limits.
+- Each key belongs to the signed-in user, enforced by a unique `(userId, key)` constraint.
+- A key is a better fit than deduplicating by payload because two real orders can have identical details.
+- The API hashes the normalized request in a fixed order. Reusing a key with different data returns `409`.
+- Prisma creates the idempotency record, order, and items in one transaction, and calculates the total on the server.
+- A matching retry returns `201` with the stored order. If two requests race, the loser reads and returns the winner.
+- Keys stay in the database for its lifetime. Deleting an order leaves a tombstone, so a matching retry returns `410`.
+- Different keys can still create identical orders. The form keeps its key only while it is open, so uncertain requests should be retried before refresh or sign-out.
 
-AI usage so far: OpenAI Codex assisted with planning, implementation, documentation, and automated tests. Final disclosure will be reviewed with the completed submission.
+## 2. Cursor pagination instead of offset pagination
+
+- Use a cursor containing the active sort value and the order ID tie-breaker.
+- Keep filtering, sorting, and pagination on the API; the browser never loads all orders.
+- Offset pagination was rejected because inserts and deletes can shift later pages and cause skips or duplicates.
+- TanStack Query appends pages while TanStack Virtual renders only visible rows.
+- Query keys include every search, filter, and sort input, and requests consume cancellation signals.
+- This is simple for the MVP and still gives us a reasonable path to larger datasets.
+
+## 3. SQLite for the assessment, PostgreSQL at larger scale
+
+- SQLite keeps the assessment easy to run: there is no separate database service to install.
+- PostgreSQL would add setup work without helping this single-machine MVP.
+- The important correctness rules already live in database constraints and indexes, not in process memory.
+- If the dataset grows, move the Prisma schema and idempotency constraint to PostgreSQL through a reviewed migration.
+- Before that move, revisit search indexes, connection pooling, backups, and monitoring.
+- SQLite is a practical assessment choice, not a claim that it is the right production database at every scale.
+
+AI usage: I used OpenAI Codex to save time on planning, implementation, documentation, and tests. I ran the relevant checks and reviewed each accepted change before moving on. I did not review every AI-generated test file line by line, so those tests support the review but do not replace it. The UI focuses on the assessment requirements rather than visual polish.

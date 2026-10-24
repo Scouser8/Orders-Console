@@ -642,6 +642,8 @@ Keep the final README answer to five lines maximum. This is a written product qu
 
 Provide either a two-minute screen recording or three screenshots demonstrating R1, including three rapid filter changes without stale results, and the R2 parallel-request duplicate proof. Preserve the repository history and include the repository link in the submission.
 
+For the R1 demonstration, use the existing delayed-response test: issue three status changes rapidly, hold the first two responses, resolve the newest response, then release the older responses. The assertion must show that the older responses never replace the latest results. This test is the repeatable evidence path; no artificial delay belongs in production code.
+
 ---
 
 ## 17. Implementation Priority
@@ -697,8 +699,8 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 16. [x] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
 17. [x] Implement the validated create form, calculated total, and idempotency-key reuse across double-clicks, retries, and timeout resubmissions.
 18. [ ] Add root `npm run test:duplicate`: send matching authenticated create requests in parallel, verify exactly one persisted order, and fail the command if duplication occurs.
-19. [ ] Write the README middleware-review findings, implemented fixes, and two- or three-sentence token-storage explanation.
-20. [ ] Write DECISIONS.md with exactly three actual decisions of five to eight lines each, including R2 limits and truthful AI disclosure.
+19. [x] Write the README middleware-review findings, implemented fixes, and two- or three-sentence token-storage explanation.
+20. [x] Write DECISIONS.md with exactly three actual decisions of five to eight lines each, including R2 limits and truthful AI disclosure.
 21. [ ] Write the one-page SCALE.md grounded in the implementation.
 22. [ ] Complete README prerequisites, ordered setup/configuration/database/seed/run/test instructions, URLs, demo login, indexes, five-line product answer, and omissions.
 23. [ ] Verify fresh local setup from README in under five minutes without paid/hosted services; prepare a two-minute recording or three screenshots showing R1 rapid-filter correctness and R2 duplicate proof.
@@ -765,4 +767,6 @@ The implementation is complete when the mandatory checks below pass. Document un
 - skipped work is explicitly documented
 - commit history remains readable
 - a two-minute recording or three screenshots demonstrate R1, three rapid filter changes, and the R2 duplicate proof
+- R1 evidence uses deliberately delayed earlier responses and clearly states that this delay exists only in the test scenario
+- AI disclosure states the actual planning, implementation, documentation, and test assistance; it does not claim line-by-line review of AI-generated test files or visual polish beyond the MVP scope
 - repository link and reviewer access are prepared for submission when requested

@@ -88,9 +88,9 @@ npm run test:e2e --workspace=api
 npm run test --workspace=web
 ```
 
-Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, orders search/filter/sort/pagination, and validated order creation. Creation integration tests check parallel matching/conflicting requests, replay after deletion, and rollback on database failures. They use temporary test configuration and databases; the dedicated root R2 proof command is pending.
+Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, orders search/filter/sort/pagination, and validated order creation. The creation integration tests cover matching and conflicting parallel requests, replay after deletion, and rollback on database failures. They use temporary test configuration and databases; the dedicated root R2 proof command is still pending.
 
-Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries. The R1 test changes status three times, resolves the latest response first, then resolves the older responses and checks that only the latest results remain visible.
+Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries. The R1 race test holds the first two responses, changes the status filter three times quickly, resolves the latest response first, and then releases the older responses. Only the latest results should remain visible. This gives us a repeatable demo even when local requests normally finish too quickly.
 
 Create-form tests check validation, repeatable items, exact money conversion, double submissions, timeout/lost-response key reuse, and order-query refresh after success.
 
@@ -109,6 +109,10 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: the dedicated duplicate-proof command is pending. `npm run test:duplicate` will be documented when implemented. Submission screenshots/recording and fresh-setup verification are still pending.
+Development is ongoing: the dedicated duplicate-proof command is pending. `npm run test:duplicate` will be documented with its prerequisites, expected success output, and failure behavior when implemented. Submission screenshots/recording and fresh-setup verification are still pending.
 
-The five-line product answer is also pending. Optional work has not been started while mandatory requirements remain incomplete.
+## Product question: “Delete all cancelled orders”
+
+First clarify whether the need is less visual clutter, storage reduction, compliance, or reporting. Hard deletion could break auditability and recovery, so I would first propose hiding or archiving cancelled orders with an explicit retention policy. If deletion is later required, define authorization, audit logging, confirmation, retention, and recovery before implementing it. This MVP intentionally supports only authorized single-order deletion; it does not implement bulk deletion.
+
+Optional work has not started while mandatory requirements remain incomplete. I used OpenAI Codex for planning, implementation, documentation, and tests to save time. I ran the checks and reviewed accepted changes, but I did not review every AI-generated test line by line. The UI is intentionally functional rather than highly polished because correctness and security came first.
