@@ -65,13 +65,13 @@ Vite forwards browser requests under `/api` to `http://127.0.0.1:3000` in develo
 
 ## Login
 
-Open the frontend and sign in with either demo account above. Successful login opens the protected home page; **Sign out** clears the local session and cached server data. The orders list is not implemented yet.
+Open the frontend and sign in with either demo account above. Successful login opens the orders table; scroll to load more orders, or use **Load more**. Rows are virtualized, with loading, empty, and retry states. **Sign out** clears the local session and cached server data.
 
 `POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes.
 
 The token lives only in React memory and is sent explicitly in the Authorization header; reloading signs you out. It is not persisted in localStorage or cookies, reducing persistent token exposure and avoiding cookie-based CSRF. Active XSS can still use a live session, and signing out locally does not revoke a token before its server expiry.
 
-The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue; the frontend table is pending.
+The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue. Frontend search/filter/sort controls are pending; the table currently shows newest first.
 
 ## Tests
 
@@ -84,7 +84,7 @@ npm run test --workspace=web
 
 Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, and orders search/filter/sort/pagination. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
 
-Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, and session expiry.
+Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries.
 
 ## Security review (in progress)
 

@@ -1,0 +1,204 @@
+// @vitest-environment jsdom
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AuthContext } from "../auth/auth-context";
+import type { AuthContextValue } from "../auth/types/auth.types";
+import { OrdersTable } from "./components/orders-table";
+import {
+  DEFAULT_ORDER_QUERY,
+  ORDER_ROW_HEIGHT,
+} from "./constants/order.constants";
+import { useOrders } from "./hooks/use-orders";
+import type { OrderQuery } from "./types/order.types";
+
+const auth: AuthContextValue = {
+  session: {
+    accessToken: "test-token",
+    expiresAt: Date.now() + 3600000,
+    user: { id: "agent", email: "agent@example.com", role: "AGENT" },
+  },
+  signIn: () => {},
+  signOut: () => {},
+};
+function page(start: number, count: number, nextCursor: string | null) {
+  return {
+    items: Array.from({ length: count }, (_, offset) => ({
+      id: `order-${start + offset}`,
+      customerName: `Customer ${start + offset}`,
+      customerEmail: `customer-${start + offset}@example.com`,
+      status: "PENDING",
+      totalAmount: 12345,
+      createdAt: "2026-01-01T10:00:00.000Z",
+    })),
+    nextCursor,
+  };
+}
+
+describe("orders table", () => {
+  const fetchMock = vi.fn<typeof fetch>();
+  let client: QueryClient;
+  beforeEach(() => {
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+    // jsdom has no layout; retain the real virtualizer with a measured viewport.
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(480);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+  });
+  afterEach(() => {
+    cleanup();
+    client.clear();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={client}>
+        <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>
+      </QueryClientProvider>
+    );
+  }
+
+  it("loads authenticated pages, virtualizes rows, and fetches on scroll", async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json(page(0, 50, "next-page")))
+      .mockResolvedValueOnce(Response.json(page(50, 50, null)));
+    render(<OrdersTable />, { wrapper: Wrapper });
+    expect(screen.getByRole("status").textContent).toContain("Loading orders");
+    expect(await screen.findByText("Customer 0")).toBeDefined();
+    expect(screen.getAllByText("Pending").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/123.45/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("row").length).toBeLessThan(25);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain(
+      "sortBy=createdAt&sortDirection=desc&limit=50",
+    );
+    expect(new Headers(options?.headers).get("Authorization")).toBe(
+      "Bearer test-token",
+    );
+    expect(options?.signal).toBeInstanceOf(AbortSignal);
+
+    const scroll = screen.getByRole("region", { name: "Scrollable orders" });
+    fireEvent.scroll(scroll, { target: { scrollTop: 46 * ORDER_ROW_HEIGHT } });
+    await screen.findByText("100 orders loaded · Newest first");
+    expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=next-page");
+    expect(screen.getAllByRole("row").length).toBeLessThan(30);
+    expect(screen.getByText("All matching orders loaded.")).toBeDefined();
+    fireEvent.scroll(scroll, { target: { scrollTop: 90 * ORDER_ROW_HEIGHT } });
+    await screen.findByText("Customer 95");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows an empty result", async () => {
+    fetchMock.mockResolvedValue(Response.json(page(0, 0, null)));
+    render(<OrdersTable />, { wrapper: Wrapper });
+    expect(await screen.findByText("No orders found.")).toBeDefined();
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("retries initial errors", async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json({}, { status: 500 }))
+      .mockResolvedValueOnce(Response.json(page(0, 1, null)));
+    render(<OrdersTable />, { wrapper: Wrapper });
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Customer 0")).toBeDefined();
+  });
+
+  it("keeps loaded rows after a page failure and retries the same cursor", async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json(page(0, 50, "retry-cursor")))
+      .mockResolvedValueOnce(Response.json({}, { status: 500 }))
+      .mockResolvedValueOnce(Response.json(page(50, 1, null)));
+    render(<OrdersTable />, { wrapper: Wrapper });
+    await screen.findByText("Customer 0");
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByRole("alert")).toBeDefined();
+    expect(screen.getByText("Customer 0")).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading more" }));
+    await screen.findByText("51 orders loaded · Newest first");
+    expect(fetchMock.mock.calls[1][0]).toBe(fetchMock.mock.calls[2][0]);
+  });
+
+  it("cancels pending fetches when unmounted", async () => {
+    fetchMock.mockImplementation(
+      (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            "abort",
+            () => reject(options.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    const view = render(<OrdersTable />, { wrapper: Wrapper });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const signal = fetchMock.mock.calls[0][1]?.signal;
+    view.unmount();
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it("uses every query input in the cache key and resets pagination", async () => {
+    fetchMock.mockImplementation(async () => Response.json(page(0, 1, "next")));
+    const view = renderHook(
+      ({ query }: { query: OrderQuery }) => useOrders(query),
+      {
+        wrapper: Wrapper,
+        initialProps: { query: DEFAULT_ORDER_QUERY },
+      },
+    );
+    await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+    await act(async () => {
+      await view.result.current.fetchNextPage();
+    });
+    expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=next");
+    let query = DEFAULT_ORDER_QUERY;
+    for (const change of [
+      { search: "Alice & Bob" },
+      { status: "PENDING" as const },
+      { sortBy: "totalAmount" as const },
+      { sortDirection: "asc" as const },
+    ]) {
+      query = { ...query, ...change };
+      const previousCalls = fetchMock.mock.calls.length;
+      view.rerender({ query });
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.length).toBe(previousCalls + 1),
+      );
+      await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
+      expect(String(fetchMock.mock.lastCall?.[0])).not.toContain("cursor=");
+    }
+    const url = new URL(
+      String(fetchMock.mock.lastCall?.[0]),
+      "http://localhost",
+    );
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      search: "Alice & Bob",
+      status: "PENDING",
+      sortBy: "totalAmount",
+      sortDirection: "asc",
+    });
+    expect(client.getQueryCache().getAll()).toHaveLength(5);
+  });
+});

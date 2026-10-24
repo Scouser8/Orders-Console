@@ -1,4 +1,5 @@
 import { useAuth } from "../features/auth/hooks/use-auth";
+import { OrdersTable } from "../features/orders/components/orders-table";
 import { PageContainer } from "../shared/components/page-container";
 import { Button } from "../shared/components/ui/button";
 
@@ -21,6 +22,7 @@ export function HomePage() {
       <p className="mt-4 text-lg text-slate-600">
         Find and manage customer orders.
       </p>
+      <OrdersTable />
     </PageContainer>
   );
 }

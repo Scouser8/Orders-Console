@@ -686,7 +686,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 11. [x] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
 12. [x] Implement login and protected frontend routes using the documented token-storage choice.
 13. [x] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
-14. [ ] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
+14. [x] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
 15. [ ] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
 16. [ ] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
 17. [ ] Implement the validated create form, calculated total, and idempotency-key reuse across double-clicks, retries, and timeout resubmissions.

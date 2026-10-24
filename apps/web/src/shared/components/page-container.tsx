@@ -6,7 +6,7 @@ export function PageContainer({
 }: ComponentProps<"main">) {
   return (
     <main
-      className={`mx-auto flex min-h-dvh max-w-5xl flex-col justify-center px-6 py-12 ${className}`}
+      className={`mx-auto flex min-h-dvh max-w-6xl flex-col justify-center px-6 py-12 ${className}`}
       {...props}
     />
   );
