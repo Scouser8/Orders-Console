@@ -698,7 +698,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 15. [x] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
 16. [x] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.
 17. [x] Implement the validated create form, calculated total, and idempotency-key reuse across double-clicks, retries, and timeout resubmissions.
-18. [ ] Add root `npm run test:duplicate`: send matching authenticated create requests in parallel, verify exactly one persisted order, and fail the command if duplication occurs.
+18. [x] Add root `npm run test:duplicate`: send matching authenticated create requests in parallel, verify exactly one persisted order, and fail the command if duplication occurs.
 19. [x] Write the README middleware-review findings, implemented fixes, and two- or three-sentence token-storage explanation.
 20. [x] Write DECISIONS.md with exactly three actual decisions of five to eight lines each, including R2 limits and truthful AI disclosure.
 21. [ ] Write the one-page SCALE.md grounded in the implementation.

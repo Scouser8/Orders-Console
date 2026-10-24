@@ -86,9 +86,10 @@ npm run db:validate
 npm run test --workspace=api
 npm run test:e2e --workspace=api
 npm run test --workspace=web
+npm run test:duplicate
 ```
 
-Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, orders search/filter/sort/pagination, and validated order creation. The creation integration tests cover matching and conflicting parallel requests, replay after deletion, and rollback on database failures. They use temporary test configuration and databases; the dedicated root R2 proof command is still pending.
+Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, orders search/filter/sort/pagination, and validated order creation. The creation integration tests cover matching and conflicting parallel requests, replay after deletion, and rollback on database failures. They use temporary test configuration and databases. `npm run test:duplicate` runs its own small proof test: it starts a temporary API/database, logs in as the seeded agent, sends two matching authenticated requests with one key, and prints both statuses, both returned IDs, and the final persisted counts. It exits unsuccessfully if the IDs differ or the order count is not exactly one.
 
 Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries. The R1 race test holds the first two responses, changes the status filter three times quickly, resolves the latest response first, and then releases the older responses. Only the latest results should remain visible. This gives us a repeatable demo even when local requests normally finish too quickly.
 
@@ -109,7 +110,7 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: the dedicated duplicate-proof command is pending. `npm run test:duplicate` will be documented with its prerequisites, expected success output, and failure behavior when implemented. Submission screenshots/recording and fresh-setup verification are still pending.
+Submission screenshots/recording and fresh-setup verification are still pending.
 
 ## Product question: “Delete all cancelled orders”
 
