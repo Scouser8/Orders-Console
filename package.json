@@ -18,7 +18,8 @@
     "db:generate": "npm run db:generate --workspace=api",
     "db:migrate": "npm run db:migrate --workspace=api",
     "db:seed": "npm run db:seed --workspace=api",
-    "test:duplicate": "npm run test:duplicate --workspace=api"
+    "test:duplicate": "npm run test:duplicate --workspace=api",
+    "test:r1": "npm run test:r1 --workspace=web"
   },
   "allowScripts": {
     "prisma@7.10.1": true,

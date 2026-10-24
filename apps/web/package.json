@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:r1": "vitest run src/features/orders/r1-proof.spec.tsx --silent=false --reporter=verbose",
     "preview": "vite preview"
   },
   "dependencies": {

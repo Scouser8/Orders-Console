@@ -96,10 +96,20 @@ Run these after installation and Prisma Client generation. API tests use tempora
 ### R1: Rapid Filter Changes
 
 ```bash
-npm run test --workspace=web -- src/features/orders/orders-table.spec.tsx -t "three rapid status changes" --reporter=verbose
+npm run test:r1
 ```
 
 This test holds earlier responses, changes the status three times, resolves the latest response first, and then releases the older responses. It checks that outdated results never appear, even when the mocked server ignores cancellation. The delay is only in the test.
+
+Expected output (the customer number is intentional):
+
+```text
+R1 rapid-filter proof
+- filters sent: PENDING -> PROCESSING -> COMPLETED
+- delayed responses released: COMPLETED -> PROCESSING -> PENDING
+- visible result: Customer 300
+- older requests aborted: true, true
+```
 
 ### R2: Duplicate-Safe Order Creation
 
