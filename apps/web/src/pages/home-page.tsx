@@ -1,6 +1,17 @@
+import { useAuth } from "../features/auth/hooks/use-auth";
+import { PageContainer } from "../shared/components/page-container";
+import { Button } from "../shared/components/ui/button";
+
 export function HomePage() {
+  const { session, signOut } = useAuth();
   return (
-    <main className="mx-auto flex min-h-dvh max-w-5xl flex-col justify-center px-6 py-12">
+    <PageContainer>
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-slate-600">
+          {session?.user.email} · {session?.user.role}
+        </p>
+        <Button onClick={signOut}>Sign out</Button>
+      </header>
       <p className="text-sm font-semibold tracking-widest text-indigo-700">
         SARH
       </p>
@@ -10,6 +21,6 @@ export function HomePage() {
       <p className="mt-4 text-lg text-slate-600">
         Find and manage customer orders.
       </p>
-    </main>
+    </PageContainer>
   );
 }

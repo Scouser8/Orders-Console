@@ -65,7 +65,11 @@ Vite forwards browser requests under `/api` to `http://127.0.0.1:3000` in develo
 
 ## Login
 
-`POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes. Frontend login is not implemented yet.
+Open the frontend and sign in with either demo account above. Successful login opens the protected home page; **Sign out** clears the local session and cached server data. The orders list is not implemented yet.
+
+`POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes.
+
+The token lives only in React memory and is sent explicitly in the Authorization header; reloading signs you out. It is not persisted in localStorage or cookies, reducing persistent token exposure and avoiding cookie-based CSRF. Active XSS can still use a live session, and signing out locally does not revoke a token before its server expiry.
 
 ## Tests
 
@@ -78,7 +82,7 @@ npm run test --workspace=web
 
 Tests cover the scaffold, database constraints, seed/rerun, login, and JWT rejection cases. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
 
-Frontend API-client tests cover JSON requests, error handling, and cancellation.
+Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, and session expiry.
 
 ## Security review (in progress)
 
@@ -87,7 +91,7 @@ Frontend API-client tests cover JSON requests, error handling, and cancellation.
 - Query-string tokens and loose header parsing: only a valid Bearer header is accepted.
 - Plaintext password lookup: credentials are checked against bcrypt hashes; incorrect credentials receive a generic error.
 - Unvalidated login input: DTO validation rejects malformed fields, extra properties, and passwords beyond bcrypt's 72-byte limit.
-- Frontend-only admin checks: `DELETE /api/orders/:id` now requires verified authentication and the current database role `ADMIN`. Agents receive `403`; missing orders return `404`. Deletion removes line items but keeps the idempotency key reserved. Client token storage will be documented with frontend login.
+- Frontend-only admin checks: `DELETE /api/orders/:id` now requires verified authentication and the current database role `ADMIN`. Agents receive `403`; missing orders return `404`. Deletion removes line items but keeps the idempotency key reserved. Frontend route protection is only a UI convenience.
 
 ## Indexes
 
@@ -95,6 +99,6 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: frontend login, R1/R2, and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
+Development is ongoing: R1/R2 and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
 
-The client token-storage explanation and five-line product answer are also pending. Optional work has not been started while mandatory requirements remain incomplete.
+The five-line product answer is also pending. Optional work has not been started while mandatory requirements remain incomplete.

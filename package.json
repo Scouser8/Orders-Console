@@ -6,7 +6,8 @@
     "apps/*"
   ],
   "devDependencies": {
-    "prettier": "3.9.10"
+    "prettier": "3.9.10",
+    "prisma": "^8.0.0-rc.27"
   },
   "scripts": {
     "dev:web": "npm run dev --workspace=web",
@@ -23,5 +24,8 @@
     "@prisma/engines@7.10.1": true,
     "better-sqlite3@12.11.1": true,
     "esbuild@0.28.2": true
+  },
+  "dependencies": {
+    "@prisma/client": "^7.10.1"
   }
 }

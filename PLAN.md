@@ -328,7 +328,7 @@ auth/
 
 Document all security problems found in the README.
 
-Choose client token storage and transport before building the login flow. Include a two- or three-sentence README explanation of where the token is stored and which attacks that choice does and does not protect against.
+Keep the client token only in React memory and send it explicitly as a Bearer header. Reloading signs the user out; logout and expiry clear the local session and cached server data. Include a two- or three-sentence README explanation of this choice and which attacks it does and does not protect against.
 
 Required focused security checks:
 
@@ -680,7 +680,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 9. [x] Implement secure login and JWT authentication with environment-based secrets, hash verification, expiry, and focused invalid-token checks.
 10. [x] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
 11. [x] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
-12. [ ] Implement login and protected frontend routes using the documented token-storage choice.
+12. [x] Implement login and protected frontend routes using the documented token-storage choice.
 13. [ ] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
 14. [ ] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
 15. [ ] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
