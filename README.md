@@ -65,13 +65,13 @@ Vite forwards browser requests under `/api` to `http://127.0.0.1:3000` in develo
 
 ## Login
 
-Open the frontend and sign in with either demo account above. Successful login opens the orders table; scroll to load more orders, or use **Load more**. Rows are virtualized, with loading, empty, and retry states. **Sign out** clears the local session and cached server data.
+Open the frontend and sign in with either demo account above. Search by customer name/email, filter by status, and sort by date or total in either direction. Scroll to load more orders, or use **Load more**. Rows are virtualized, with loading, empty, and retry states. **Sign out** clears the local session and cached server data.
 
 `POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes.
 
 The token lives only in React memory and is sent explicitly in the Authorization header; reloading signs you out. It is not persisted in localStorage or cookies, reducing persistent token exposure and avoiding cookie-based CSRF. Active XSS can still use a live session, and signing out locally does not revoke a token before its server expiry.
 
-The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue. Frontend search/filter/sort controls are pending; the table currently shows newest first.
+The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue. Changing frontend controls resets the viewport and starts the matching query from its first page; older requests are cancelled.
 
 ## Tests
 
@@ -84,7 +84,7 @@ npm run test --workspace=web
 
 Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, and orders search/filter/sort/pagination. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
 
-Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries.
+Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, session expiry, virtualized scrolling, cursor loading, and retries. The R1 test changes status three times, resolves the latest response first, then resolves the older responses and checks that only the latest results remain visible.
 
 ## Security review (in progress)
 
@@ -101,6 +101,6 @@ Orders use `(createdAt, id)` and `(totalAmount, id)` for stable sorting/paginati
 
 ## What I skipped and why
 
-Development is ongoing: R1/R2 and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented.
+Development is ongoing: R2 and duplicate proof are pending. `npm run test:duplicate` will be documented when implemented. Submission screenshots/recording and fresh-setup verification are still pending.
 
 The five-line product answer is also pending. Optional work has not been started while mandatory requirements remain incomplete.

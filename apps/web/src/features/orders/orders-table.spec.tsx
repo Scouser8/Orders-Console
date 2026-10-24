@@ -19,7 +19,7 @@ import {
   ORDER_ROW_HEIGHT,
 } from "./constants/order.constants";
 import { useOrders } from "./hooks/use-orders";
-import type { OrderQuery } from "./types/order.types";
+import type { Order, OrderQuery } from "./types/order.types";
 
 const auth: AuthContextValue = {
   session: {
@@ -30,13 +30,18 @@ const auth: AuthContextValue = {
   signIn: () => {},
   signOut: () => {},
 };
-function page(start: number, count: number, nextCursor: string | null) {
+function page(
+  start: number,
+  count: number,
+  nextCursor: string | null,
+  status: Order["status"] = "PENDING",
+) {
   return {
     items: Array.from({ length: count }, (_, offset) => ({
       id: `order-${start + offset}`,
       customerName: `Customer ${start + offset}`,
       customerEmail: `customer-${start + offset}@example.com`,
-      status: "PENDING",
+      status,
       totalAmount: 12345,
       createdAt: "2026-01-01T10:00:00.000Z",
     })),
@@ -200,5 +205,162 @@ describe("orders table", () => {
       sortDirection: "asc",
     });
     expect(client.getQueryCache().getAll()).toHaveLength(5);
+  });
+
+  it("sends combined search/status/sort controls to the server and resets the viewport", async () => {
+    fetchMock.mockImplementation(async (url) => {
+      const cursor = new URL(String(url), "http://localhost").searchParams.get(
+        "cursor",
+      );
+      return Response.json(page(cursor ? 50 : 0, 50, "more"));
+    });
+    render(<OrdersTable />, { wrapper: Wrapper });
+    await screen.findByText("Customer 0");
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await screen.findByText("100 orders loaded · Newest first");
+    fireEvent.scroll(
+      screen.getByRole("region", { name: "Scrollable orders" }),
+      {
+        target: { scrollTop: 10 * ORDER_ROW_HEIGHT },
+      },
+    );
+    fireEvent.change(screen.getByLabelText("Search customers"), {
+      target: { value: "  Alice & Bob@example.com  " },
+    });
+    await screen.findByText("50 orders loaded · Newest first");
+    expect(
+      screen.getByRole("region", { name: "Scrollable orders" }).scrollTop,
+    ).toBe(0);
+    expect(screen.getByText("Customer 0")).toBeDefined();
+    fireEvent.change(screen.getByLabelText("Status"), {
+      target: { value: "PENDING" },
+    });
+    await waitFor(() =>
+      expect(String(fetchMock.mock.lastCall?.[0])).toContain("status=PENDING"),
+    );
+    for (const [value, sortBy, sortDirection] of [
+      ["oldest", "createdAt", "asc"],
+      ["highest", "totalAmount", "desc"],
+      ["lowest", "totalAmount", "asc"],
+      ["newest", "createdAt", "desc"],
+    ]) {
+      const previousCalls = fetchMock.mock.calls.length;
+      fireEvent.change(screen.getByLabelText("Sort orders"), {
+        target: { value },
+      });
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.length).toBeGreaterThan(previousCalls),
+      );
+      const params = new URL(
+        String(fetchMock.mock.lastCall?.[0]),
+        "http://localhost",
+      ).searchParams;
+      expect(Object.fromEntries(params)).toMatchObject({
+        search: "Alice & Bob@example.com",
+        status: "PENDING",
+        sortBy,
+        sortDirection,
+      });
+      expect(params.has("cursor")).toBe(false);
+      await screen.findByText("Customer 0");
+    }
+    fireEvent.change(screen.getByLabelText("Status"), {
+      target: { value: "" },
+    });
+    await waitFor(() =>
+      expect(String(fetchMock.mock.lastCall?.[0])).not.toContain("status="),
+    );
+    expect(screen.getByLabelText("Search customers")).toHaveProperty(
+      "maxLength",
+      254,
+    );
+  });
+
+  it("keeps only the latest results after three rapid status changes with delayed older responses", async () => {
+    const delayed: {
+      resolve: (value: Response) => void;
+      signal: AbortSignal | null | undefined;
+    }[] = [];
+    fetchMock
+      .mockResolvedValueOnce(Response.json(page(0, 1, null)))
+      // Deliberately ignore cancellation, simulating responses already in flight.
+      .mockImplementation(
+        (_url, options) =>
+          new Promise<Response>((resolve) => {
+            delayed.push({ resolve, signal: options?.signal });
+          }),
+      );
+    render(<OrdersTable />, { wrapper: Wrapper });
+    await screen.findByText("Customer 0");
+    for (const [index, status] of [
+      "PENDING",
+      "PROCESSING",
+      "COMPLETED",
+    ].entries()) {
+      fireEvent.change(screen.getByLabelText("Status"), {
+        target: { value: status },
+      });
+      await waitFor(() => expect(delayed).toHaveLength(index + 1));
+    }
+    expect(delayed[0].signal?.aborted).toBe(true);
+    expect(delayed[1].signal?.aborted).toBe(true);
+    expect(delayed[2].signal?.aborted).toBe(false);
+    expect(screen.queryByText("Customer 0")).toBeNull();
+    expect(screen.getByLabelText("Status")).toHaveProperty(
+      "value",
+      "COMPLETED",
+    );
+    await act(async () => {
+      delayed[2].resolve(Response.json(page(300, 1, null, "COMPLETED")));
+    });
+    await screen.findByText("Customer 300");
+    for (const [index, start] of [
+      [1, 200],
+      [0, 100],
+    ]) {
+      await act(async () => {
+        delayed[index].resolve(
+          Response.json(
+            page(start, 1, null, index === 1 ? "PROCESSING" : "PENDING"),
+          ),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+      expect(screen.getByText("Customer 300")).toBeDefined();
+      expect(screen.queryByText(`Customer ${start}`)).toBeNull();
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("cancels a pending next page when search changes and ignores its delayed result", async () => {
+    let resolveOldPage!: (value: Response) => void;
+    fetchMock
+      .mockResolvedValueOnce(Response.json(page(0, 50, "old-cursor")))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveOldPage = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(Response.json(page(500, 1, null)));
+    render(<OrdersTable />, { wrapper: Wrapper });
+    await screen.findByText("Customer 0");
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const oldSignal = fetchMock.mock.calls[1][1]?.signal;
+    fireEvent.change(screen.getByLabelText("Search customers"), {
+      target: { value: "new customer" },
+    });
+    await screen.findByText("Customer 500");
+    expect(oldSignal?.aborted).toBe(true);
+    expect(String(fetchMock.mock.calls[2][0])).not.toContain("cursor=");
+    await act(async () => {
+      resolveOldPage(Response.json(page(50, 50, null)));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(screen.getByText("Customer 500")).toBeDefined();
+    expect(screen.queryByText("Customer 0")).toBeNull();
+    expect(screen.queryByText("Customer 50")).toBeNull();
+    expect(screen.getByText("1 orders loaded · Newest first")).toBeDefined();
   });
 });
