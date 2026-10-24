@@ -271,6 +271,8 @@ Keep the cursor opaque to the frontend where practical.
 
 Use stable sorting with `id` as the tie-breaker.
 
+List API defaults: newest first, 50 rows per page, maximum 100; trimmed search up to 254 characters. Return list fields only, without line items. Cursors carry the sort value and ID and are bound to the search/filter/sort settings; invalid or mismatched cursors return `400`. Continuation survives deletion of its anchor order. Pagination is not a snapshot: concurrent changes to sort/filter values can change page membership.
+
 ---
 
 ## 7. Database Indexes
@@ -329,6 +331,8 @@ auth/
 Document all security problems found in the README.
 
 Keep the client token only in React memory and send it explicitly as a Bearer header. Reloading signs the user out; logout and expiry clear the local session and cached server data. Include a two- or three-sentence README explanation of this choice and which attacks it does and does not protect against.
+
+Deferred discussion: persist login across refreshes, potentially using an HttpOnly cookie with the existing one-hour expiry and no refresh-token flow initially. Discuss session restoration, logout, and CSRF protection before changing the current memory-only Bearer approach. This is not part of the next implementation step.
 
 Required focused security checks:
 
@@ -681,7 +685,7 @@ Completed setup is supported by existing files and commits `f72af43`, `21a5588`,
 10. [x] Implement server-side role authorization and authenticated admin-only single-order deletion; verify AGENT denial and ADMIN success.
 11. [x] Configure frontend routing, query client, API client with AbortSignal support, and basic Tailwind styling.
 12. [x] Implement login and protected frontend routes using the documented token-storage choice.
-13. [ ] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
+13. [x] Implement the protected orders API with customer search, status filtering, date/amount sorting, and stable cursor pagination; check ties in both directions.
 14. [ ] Implement the virtualized orders table with infinite loading, complete query keys, and cancellation.
 15. [ ] Add search/filter/sort controls with query reset and cancellation; verify three rapid filter changes with delayed earlier responses cannot show stale results.
 16. [ ] Implement authenticated, validated, atomic, idempotent order creation with server-calculated totals; check replay/conflict behavior and atomicity.

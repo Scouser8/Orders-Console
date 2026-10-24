@@ -71,6 +71,8 @@ Open the frontend and sign in with either demo account above. Successful login o
 
 The token lives only in React memory and is sent explicitly in the Authorization header; reloading signs you out. It is not persisted in localStorage or cookies, reducing persistent token exposure and avoiding cookie-based CSRF. Active XSS can still use a live session, and signing out locally does not revoke a token before its server expiry.
 
+The protected `GET /api/orders` supports `search` (customer name/email), `status`, `sortBy` (`createdAt` or `totalAmount`), `sortDirection` (`asc` or `desc`), `limit` (default 50, maximum 100), and `cursor`. Both roles can list orders; responses contain `{ items, nextCursor }`. Use `nextCursor` with the same search/filter/sort settings to continue; the frontend table is pending.
+
 ## Tests
 
 ```bash
@@ -80,7 +82,7 @@ npm run test:e2e --workspace=api
 npm run test --workspace=web
 ```
 
-Tests cover the scaffold, database constraints, seed/rerun, login, and JWT rejection cases. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
+Tests cover the scaffold, database constraints, seed/rerun, login, JWT rejection, deletion authorization, and orders search/filter/sort/pagination. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
 
 Frontend tests cover API requests, cancellation, login validation/errors, protected redirects, logout, and session expiry.
 
