@@ -61,6 +61,8 @@ npm run dev:web
 
 API: <http://localhost:3000>. Frontend: <http://localhost:5173> (or the URL Vite prints).
 
+Vite forwards browser requests under `/api` to `http://127.0.0.1:3000` in development and preview. If the API uses another address or port, set `API_PROXY_TARGET` in the frontend terminal.
+
 ## Login
 
 `POST /api/auth/login` accepts JSON with `email` and `password`, and returns `{ accessToken, user }`. Tokens expire after one hour and must be sent as `Authorization: Bearer <accessToken>` on protected routes. Frontend login is not implemented yet.
@@ -71,9 +73,12 @@ API: <http://localhost:3000>. Frontend: <http://localhost:5173> (or the URL Vite
 npm run db:validate
 npm run test --workspace=api
 npm run test:e2e --workspace=api
+npm run test --workspace=web
 ```
 
 Tests cover the scaffold, database constraints, seed/rerun, login, and JWT rejection cases. They use temporary test configuration and databases. The R2 parallel-request proof is not implemented yet.
+
+Frontend API-client tests cover JSON requests, error handling, and cancellation.
 
 ## Security review (in progress)
 

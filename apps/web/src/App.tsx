@@ -1,7 +1,16 @@
-import "./App.css";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter } from "react-router";
+import { AppRoutes } from "./routes/app-routes";
+import { queryClient } from "./shared/api/query-client";
 
 function App() {
-  return <div>Orders Console</div>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 }
 
 export default App;
